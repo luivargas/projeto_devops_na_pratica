@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "Infra mínima para rodar uma API Nest.js em EC2 com CI/CD (CloudFormation + GitHub Actions)."
+Description: "Infra mínima para rodar uma API Nest.js."
 
 Parameters:
   VpcId:
@@ -40,9 +40,6 @@ Conditions:
 
 Resources:
 
-  ########################################################
-  # Security Group: libera SSH (22) e API Nest (3000)
-  ########################################################
   AppSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -61,9 +58,6 @@ Resources:
         - Key: Name
           Value: !Sub "${AWS::StackName}-sg"
 
-  ########################################################
-  # IAM Role + Instance Profile para SSM (acesso sem SSH)
-  ########################################################
   Ec2InstanceRole:
     Type: AWS::IAM::Role
     Properties:
@@ -88,24 +82,6 @@ Resources:
       Roles: [!Ref Ec2InstanceRole]
       InstanceProfileName: !Sub "${AWS::StackName}-ec2-profile"
 
-  ########################################################
-  # S3 opcional para artefatos (builds/logs do pipeline)
-  ########################################################
-  ArtifactsBucket:
-    Type: AWS::S3::Bucket
-    Condition: ShouldCreateBucket
-    DeletionPolicy: Retain
-    Properties:
-      BucketName: !Sub "${AWS::StackName}-artifacts-${AWS::AccountId}-${AWS::Region}"
-      VersioningConfiguration:
-        Status: Enabled
-      Tags:
-        - Key: Name
-          Value: !Sub "${AWS::StackName}-artifacts"
-
-  ########################################################
-  # Instância EC2 com UserData básico (Node + PM2 placeholder)
-  ########################################################
   AppEc2Instance:
     Type: AWS::EC2::Instance
     Properties:
