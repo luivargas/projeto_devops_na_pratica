@@ -42,4 +42,3 @@ jobs:
           sudo npm install
           sudo pm2 delete server 2>/dev/null
           sudo pm2 start server.js  # Exemplo para reiniciar a aplicação Node.js com PM2
-
