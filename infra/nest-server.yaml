@@ -226,7 +226,7 @@ Outputs:
     Value: !GetAtt AppInstance.PublicDnsName
   SSHCommandExample:
     Description: Exemplo de conexão SSH
-    Value: !Sub "ssh -i /caminho/para/sua-chave.pem ec2-user@${AppInstance.PublicDnsName}"
+    Value: ssh -i "myKey.pem" ubuntu@ec2-18-207-159-189.compute-1.amazonaws.com
   UrlExample:
     Description: URL de teste (HTTP direto na porta da app)
     Value: !Sub "http://${AppInstance.PublicDnsName}:${AppPort}"
