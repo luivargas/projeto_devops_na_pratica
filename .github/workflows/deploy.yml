@@ -47,8 +47,6 @@ jobs:
   infra-bootstrap:
     name: Bootstrap infra (Docker + SonarQube + ZAP)
     runs-on: [self-hosted, ec2-security]
-    # opcional: só roda quando você chamar manualmente
-    if: github.event_name == 'workflow_dispatch'
     steps:
       - name: Update e instalar Docker
         run: |
