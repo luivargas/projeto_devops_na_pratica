@@ -18,26 +18,17 @@ jobs:
 
           echo "Verificando se a stack existe..."
           if aws cloudformation describe-stacks --stack-name devops-nest-docker >/dev/null 2>&1; then
-            echo "Stack existe. Deletando..."
-            aws cloudformation delete-stack --stack-name devops-nest-docker
-            echo "Aguardando deleção completa..."
-            aws cloudformation wait stack-delete-complete --stack-name devops-nest-docker
-            echo "Stack deletada com sucesso."
-          else
             echo "Stack não existe. Seguindo em frente..."
-          fi
-
-      - name: Criar nova stack e aguardar
-        run: |
-          set -e
-          aws cloudformation create-stack \
+          else
+            aws cloudformation create-stack \
             --stack-name devops-nest-docker \
             --template-body file://infra/template.yaml \
             --capabilities CAPABILITY_NAMED_IAM \
 
-          echo "Aguardando criação da stack..."
-          aws cloudformation wait stack-create-complete --stack-name devops-nest-docker
-          echo "Stack criada com sucesso."
+            echo "Aguardando criação da stack..."
+            aws cloudformation wait stack-create-complete --stack-name devops-nest-docker
+            echo "Stack criada com sucesso."
+          fi
 
       - name: Criar alarme CloudWatch (exemplo)
         run: |
@@ -74,4 +65,4 @@ jobs:
               -Dsonar.projectKey=projeto_devops_na_pratica \
               -Dsonar.sources=. \
               -Dsonar.host.url=http://18.219.232.37:9000 \
-              -Dsonar.token=sqp_94b76567a4bd316fbc63a75e2a76b70bb3500541
+              -Dsonar.token=sqp_d91f38d52deead1fb2f70d443d61ab6492bdec95
