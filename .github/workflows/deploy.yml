@@ -12,26 +12,27 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-2
+      - run: aws cloudformation delete-stack --stack-name devops-nest-docker
       - run: aws cloudformation create-stack \--stack-name devops-nest-docker \--template-body file://infra/template.yaml \--capabilities CAPABILITY_NAMED_IAM \
       - run: aws cloudwatch put-metric-alarm \--alarm-name HighCPUUtilization \--metric-name CPUUtilization \--namespace AWS/EC2 \--statistic Average \--period 300 \--threshold 80 \--comparison-operator GreaterThanThreshold \--dimensions Name=InstanceId,Value=i-0abcdef1234567890 \--evaluation-periods 2 \--alarm-actions arn:aws:sns:us-east-2:123456789012:NotifyMe \--unit Percent
-  # sonar_scan:
-  #   name: SonarQube Analysis
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout Repository
-  #       uses: actions/checkout@v4
+  sonar_scan:
+    name: SonarQube Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-  #     - name: Install SonarQube Scanner
-  #       run: |
-  #         curl -Lo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.7.0.2747-linux.zip
-  #         unzip sonar-scanner.zip
-  #         mv sonar-scanner-4.7.0.2747-linux sonar-scanner
-  #         echo "$(pwd)/sonar-scanner/bin" >> $GITHUB_PATH
+      - name: Install SonarQube Scanner
+        run: |
+          curl -Lo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.7.0.2747-linux.zip
+          unzip sonar-scanner.zip
+          mv sonar-scanner-4.7.0.2747-linux sonar-scanner
+          echo "$(pwd)/sonar-scanner/bin" >> $GITHUB_PATH
 
-  #     - name: Run SonarQube Analysis
-  #       run: |
-  #         sonar-scanner \
-  #           -Dsonar.projectKey=nodepipeline-devops \
-  #           -Dsonar.sources=. \
-  #           -Dsonar.host.url=http://54.242.140.157:9000 \
-  #           -Dsonar.login=sqp_697712de5eeee5d1d188bfef05bad07b9977484d
+      # - name: Run SonarQube Analysis
+      #   run: |
+      #     sonar-scanner \
+      #       -Dsonar.projectKey=nodepipeline-devops \
+      #       -Dsonar.sources=. \
+      #       -Dsonar.host.url=http://18.219.232.37:9000 \
+      #       -Dsonar.login=sqp_697712de5eeee5d1d188bfef05bad07b9977484d
