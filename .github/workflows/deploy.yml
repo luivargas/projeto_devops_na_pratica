@@ -46,7 +46,7 @@ jobs:
             --unit Percent
   infra-bootstrap:
     name: Bootstrap infra (Docker + SonarQube + ZAP)
-    runs-on: [self-hosted, ec2-security]
+    runs-on: ubuntu-latest
     steps:
       - name: Update e instalar Docker
         run: |
