@@ -12,11 +12,51 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-2
-      - run: aws cloudformation delete-stack --stack-name devops-nest-docker
-      - run: aws cloudformation create-stack \--stack-name devops-nest-docker \--template-body file://infra/template.yaml \--capabilities CAPABILITY_NAMED_IAM \
-      - run: aws cloudwatch put-metric-alarm \--alarm-name HighCPUUtilization \--metric-name CPUUtilization \--namespace AWS/EC2 \--statistic Average \--period 300 \--threshold 80 \--comparison-operator GreaterThanThreshold \--dimensions Name=InstanceId,Value=i-0abcdef1234567890 \--evaluation-periods 2 \--alarm-actions arn:aws:sns:us-east-2:123456789012:NotifyMe \--unit Percent
+      - name: Delete stack (se existir) e aguardar
+        run: |
+          set -e
+
+          echo "Verificando se a stack existe..."
+          if aws cloudformation describe-stacks --stack-name devops-nest-docker >/dev/null 2>&1; then
+            echo "Stack existe. Deletando..."
+            aws cloudformation delete-stack --stack-name devops-nest-docker
+            echo "Aguardando deleção completa..."
+            aws cloudformation wait stack-delete-complete --stack-name devops-nest-docker
+            echo "Stack deletada com sucesso."
+          else
+            echo "Stack não existe. Seguindo em frente..."
+          fi
+
+      - name: Criar nova stack e aguardar
+        run: |
+          set -e
+          aws cloudformation create-stack \
+            --stack-name devops-nest-docker \
+            --template-body file://infra/template.yaml \
+            --capabilities CAPABILITY_NAMED_IAM
+
+          echo "Aguardando criação da stack..."
+          aws cloudformation wait stack-create-complete --stack-name devops-nest-docker
+          echo "Stack criada com sucesso."
+
+      - name: Criar alarme CloudWatch (exemplo)
+        run: |
+          aws cloudwatch put-metric-alarm \
+            --alarm-name HighCPUUtilization \
+            --metric-name CPUUtilization \
+            --namespace AWS/EC2 \
+            --statistic Average \
+            --period 300 \
+            --threshold 80 \
+            --comparison-operator GreaterThanThreshold \
+            --dimensions Name=InstanceId,Value=i-0abcdef1234567890 \
+            --evaluation-periods 2 \
+            --alarm-actions arn:aws:sns:us-east-2:123456789012:NotifyMe \
+            --unit Percent
+
   sonar_scan:
     name: SonarQube Analysis
+    needs: aws_creation       # 👈 só roda depois que o job aws_creation terminar OK
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -28,7 +68,6 @@ jobs:
           unzip sonar-scanner.zip
           mv sonar-scanner-4.7.0.2747-linux sonar-scanner
           echo "$(pwd)/sonar-scanner/bin" >> $GITHUB_PATH
-
       # - name: Run SonarQube Analysis
       #   run: |
       #     sonar-scanner \
