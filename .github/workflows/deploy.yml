@@ -56,7 +56,7 @@ jobs:
 
   sonar_scan:
     name: SonarQube Analysis
-    needs: aws_creation       # 👈 só roda depois que o job aws_creation terminar OK
+    needs: aws_creation
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
