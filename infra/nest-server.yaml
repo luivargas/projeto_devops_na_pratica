@@ -1,15 +1,11 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "Stack completa: VPC pública + EC2 com SSH + deploy automático de API Nest.js via git clone"
+Description: "Stack completa: VPC pública + EC2 com SSH + deploy automático de API Nest.js via git clone + pipeline Docker (ECR + CodeBuild + CodePipeline)"
 
 Parameters:
-  StackName:
-    Type: String
-    Description: Nome da Stack
-    Default: c171686a4454188l12585422t1w312162729893
 
   KeyName:
     Type: "AWS::EC2::KeyPair::KeyName"
-    Default: myKey
+    Default: mykey
     Description: Nome do Key Pair existente para acesso SSH (EC2 → Key Pairs).
 
   InstanceType:
@@ -17,6 +13,11 @@ Parameters:
     Default: t3.micro
     AllowedValues: [t2.micro, t3.micro, t3.small, t3.medium]
     Description: Tipo da instância EC2.
+
+  LatestAmiId:
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: '/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64'
+    Description: AMI mais recente do Amazon Linux 2023 via SSM
 
   AllowedSSH:
     Type: String
@@ -31,12 +32,12 @@ Parameters:
   GitRepoUrl:
     Type: String
     Default: "https://github.com/luivargas/projeto_devops_na_pratica"
-    Description: URL do repositório GIT (público) da API Nest.js.
+    Description: URL do repositório GIT (público) da API Nest.js (usado no git clone da EC2).
 
   GitBranch:
     Type: String
     Default: "main"
-    Description: Branch a clonar.
+    Description: Branch a clonar / usar como source no pipeline.
 
   AppPort:
     Type: Number
@@ -49,15 +50,23 @@ Parameters:
     AllowedValues: ["true", "false"]
     Description: Iniciar com PM2 (true) ou como serviço systemd (false).
 
-  LatestAmiId:
-    Type: "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"
-    Default: "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64"
-    Description: Última AMI Amazon Linux 2023 via SSM
+  CodeStarConnectionArn: 
+    Type: String
+    Default: arn:aws:codeconnections:us-east-2:013081881588:connection/4010176d-5316-4875-96a3-28e497acf396
+    Description: ARN da conexão CodeStar com o GitHub (criada no console da AWS).
+
+  RepositoryId:
+    Type: String
+    Default: "luivargas/projeto_devops_na_pratica"
+    Description: "Full repository id no GitHub (ex: usuario/repositorio)."
 
 Conditions:
   UsePM2: !Equals [!Ref UsePm2, "true"]
 
 Resources:
+  # =========================
+  # REDE (VPC, Subnet, Route)
+  # =========================
   VPC:
     Type: AWS::EC2::VPC
     Properties:
@@ -116,7 +125,20 @@ Resources:
           FromPort: !Ref AppPort
           ToPort: !Ref AppPort
           CidrIp: !Ref AllowedHTTP
+        # Porta 9000
+        - IpProtocol: tcp
+          FromPort: 9000
+          ToPort: 9000
+          CidrIp: !Ref AllowedHTTP
+        # Porta 8080
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          CidrIp: !Ref AllowedHTTP
 
+  # ============
+  # IAM da EC2
+  # ============
   Ec2Role:
     Type: AWS::IAM::Role
     Properties:
@@ -128,7 +150,6 @@ Resources:
               Service: ec2.amazonaws.com
             Action: "sts:AssumeRole"
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
         - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
 
   Ec2InstanceProfile:
@@ -138,11 +159,14 @@ Resources:
         - !Ref Ec2Role
       InstanceProfileName: !Sub "${AWS::StackName}-ec2-profile"
 
+  # ============
+  # INSTÂNCIA
+  # ============
   AppInstance:
     Type: AWS::EC2::Instance
     Properties:
-      ImageId: !Ref LatestAmiId
       InstanceType: !Ref InstanceType
+      ImageId: !Ref LatestAmiId
       IamInstanceProfile: !Ref Ec2InstanceProfile
       KeyName: !Ref KeyName
       NetworkInterfaces:
@@ -202,6 +226,173 @@ Resources:
 
           echo "Setup concluído. API deve estar ouvindo na porta ${AppPort}."
 
+  # ======================
+  # ECR (repositório Docker)
+  # ======================
+  AppEcrRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub "${AWS::StackName}-api-repo"
+
+  # =========================
+  # S3 p/ artefatos pipeline
+  # =========================
+  ArtifactsBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+
+  # =========================
+  # IAM p/ CodeBuild e Pipeline
+  # =========================
+  CodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AWS::StackName}-codebuild-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: CodeBuildPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - ecr:GetAuthorizationToken
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:CompleteLayerUpload
+                  - ecr:UploadLayerPart
+                  - ecr:InitiateLayerUpload
+                  - ecr:PutImage
+                  - ecr:DescribeRepositories
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:PutObject
+                  - s3:GetBucketLocation
+                Resource:
+                  - !Sub "${ArtifactsBucket.Arn}"
+                  - !Sub "${ArtifactsBucket.Arn}/*"
+
+  CodePipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AWS::StackName}-codepipeline-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codepipeline.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: CodePipelinePolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:PutObject
+                  - s3:GetBucketLocation
+                  - s3:ListBucket
+                Resource:
+                  - !Sub "${ArtifactsBucket.Arn}"
+                  - !Sub "${ArtifactsBucket.Arn}/*"
+              - Effect: Allow
+                Action:
+                  - codebuild:BatchGetBuilds
+                  - codebuild:StartBuild
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - codestar-connections:UseConnection
+                Resource: !Ref CodeStarConnectionArn
+
+  # =========================
+  # Projeto CodeBuild
+  # =========================
+  CodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Sub "${AWS::StackName}-build-docker"
+      ServiceRole: !GetAtt CodeBuildRole.Arn
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:7.0
+        Type: LINUX_CONTAINER
+        PrivilegedMode: true
+        EnvironmentVariables:
+          - Name: AWS_DEFAULT_REGION
+            Value: !Ref "AWS::Region"
+          - Name: AWS_ACCOUNT_ID
+            Value: !Ref "AWS::AccountId"
+          - Name: ECR_REPO_URI
+            Value: !GetAtt AppEcrRepository.RepositoryUri
+      Source:
+        Type: CODEPIPELINE
+      TimeoutInMinutes: 30
+      Description: "Build da imagem Docker da API Nest.js e push pro ECR"
+
+  # =========================
+  # CodePipeline (Source + Build)
+  # =========================
+  AppPipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      Name: !Sub "${AWS::StackName}-pipeline"
+      RoleArn: !GetAtt CodePipelineRole.Arn
+      ArtifactStore:
+        Type: S3
+        Location: !Ref ArtifactsBucket
+      Stages:
+        - Name: Source
+          Actions:
+            - Name: GitHubSource
+              ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Provider: CodeStarSourceConnection
+                Version: "1"
+              OutputArtifacts:
+                - Name: SourceOutput
+              Configuration:
+                ConnectionArn: !Ref CodeStarConnectionArn
+                FullRepositoryId: !Ref RepositoryId
+                BranchName: !Ref GitBranch
+                OutputArtifactFormat: CODE_ZIP
+              RunOrder: 1
+        - Name: Build
+          Actions:
+            - Name: BuildDockerImage
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: "1"
+              InputArtifacts:
+                - Name: SourceOutput
+              OutputArtifacts:
+                - Name: BuildOutput
+              Configuration:
+                ProjectName: !Ref CodeBuildProject
+              RunOrder: 1
+
 Outputs:
   PublicIP:
     Description: IP público da instância
@@ -218,3 +409,11 @@ Outputs:
   UrlExample:
     Description: URL de teste (HTTP direto na porta da app)
     Value: !Sub "http://${AppInstance.PublicDnsName}:${AppPort}"
+
+  EcrRepositoryUri:
+    Description: URI do repositório ECR da API
+    Value: !GetAtt AppEcrRepository.RepositoryUri
+
+  PipelineName:
+    Description: Nome do CodePipeline criado
+    Value: !Ref AppPipeline
