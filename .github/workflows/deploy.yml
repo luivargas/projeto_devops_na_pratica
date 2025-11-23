@@ -33,7 +33,9 @@ jobs:
           aws cloudformation create-stack \
             --stack-name devops-nest-docker \
             --template-body file://infra/template.yaml \
-            --capabilities CAPABILITY_NAMED_IAM
+            --capabilities CAPABILITY_NAMED_IAM \
+            --parameters \
+              ParameterKey=ExistingElasticIP,ParameterValue=eipalloc-0ff76f0954d2c82dd
 
           echo "Aguardando criação da stack..."
           aws cloudformation wait stack-create-complete --stack-name devops-nest-docker
@@ -68,10 +70,10 @@ jobs:
           unzip sonar-scanner.zip
           mv sonar-scanner-4.7.0.2747-linux sonar-scanner
           echo "$(pwd)/sonar-scanner/bin" >> $GITHUB_PATH
-      # - name: Run SonarQube Analysis
-      #   run: |
-      #     sonar-scanner \
-      #       -Dsonar.projectKey=projeto_devops_na_pratica \
-      #       -Dsonar.sources=. \
-      #       -Dsonar.host.url=http://18.219.232.37:9000 \
-      #       -Dsonar.login=sqp_697712de5eeee5d1d188bfef05bad07b9977484d
+      - name: Run SonarQube Analysis
+        run: |
+            sonar-scanner \
+              -Dsonar.projectKey=projeto_devops_na_pratica \
+              -Dsonar.sources=. \
+              -Dsonar.host.url=http://18.219.232.37:9000 \
+              -Dsonar.token=sqp_94b76567a4bd316fbc63a75e2a76b70bb3500541

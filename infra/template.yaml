@@ -245,7 +245,18 @@ Resources:
             sonarqube:latest
 
           echo "Setup concluído. API deve estar ouvindo na porta ${AppPort} e o SonarQube na porta 9000."
+  # Criar EIP automaticamente
+  ElasticIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
 
+  # Associar EIP → Instância
+  ElasticIPAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      AllocationId: !GetAtt ElasticIP.AllocationId
+      InstanceId: !Ref AppInstance
   # ======================
   # ECR (repositório Docker)
   # ======================
