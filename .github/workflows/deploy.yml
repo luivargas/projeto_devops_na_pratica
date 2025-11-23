@@ -71,7 +71,7 @@ jobs:
       # - name: Run SonarQube Analysis
       #   run: |
       #     sonar-scanner \
-      #       -Dsonar.projectKey=nodepipeline-devops \
+      #       -Dsonar.projectKey=projeto_devops_na_pratica \
       #       -Dsonar.sources=. \
       #       -Dsonar.host.url=http://18.219.232.37:9000 \
       #       -Dsonar.login=sqp_697712de5eeee5d1d188bfef05bad07b9977484d
