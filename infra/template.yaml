@@ -222,29 +222,7 @@ Resources:
             env PATH=$PATH:/usr/bin su - ec2-user -c "pm2 startup systemd -u ec2-user --hp /home/ec2-user"
           fi
 
-          # ============================
-          # Instalação DOCKER + SONARQUBE
-          # ============================
-
-          dnf -y install docker
-          systemctl enable docker
-          systemctl start docker
-          usermod -aG docker ec2-user
-
-          # Cria volumes para persistência do SonarQube
-          docker volume create sonarqube_data
-          docker volume create sonarqube_extensions
-          docker volume create sonarqube_logs
-
-          # Sobe o container do SonarQube na porta 9000
-          docker run -d --name sonarqube \
-            -p 9000:9000 \
-            -v sonarqube_data:/opt/sonarqube/data \
-            -v sonarqube_extensions:/opt/sonarqube/extensions \
-            -v sonarqube_logs:/opt/sonarqube/logs \
-            sonarqube:latest
-
-          echo "Setup concluído. API deve estar ouvindo na porta ${AppPort} e o SonarQube na porta 9000."
+          echo "Setup concluído. API deve estar ouvindo na porta ${AppPort}"
   # ======================
   # ECR (repositório Docker)
   # ======================
