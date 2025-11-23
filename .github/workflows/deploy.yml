@@ -12,7 +12,7 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-2
-      - run: aws cloudformation create-stack \--stack-name devops-nest-docker \--template-body file://template.yaml \--capabilities CAPABILITY_NAMED_IAM \
+      - run: aws cloudformation create-stack \--stack-name devops-nest-docker \--template-body file://infra/template.yaml \--capabilities CAPABILITY_NAMED_IAM \
       - run: aws cloudwatch put-metric-alarm \--alarm-name HighCPUUtilization \--metric-name CPUUtilization \--namespace AWS/EC2 \--statistic Average \--period 300 \--threshold 80 \--comparison-operator GreaterThanThreshold \--dimensions Name=InstanceId,Value=i-0abcdef1234567890 \--evaluation-periods 2 \--alarm-actions arn:aws:sns:us-east-2:123456789012:NotifyMe \--unit Percent
   # sonar_scan:
   #   name: SonarQube Analysis
