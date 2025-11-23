@@ -34,8 +34,6 @@ jobs:
             --stack-name devops-nest-docker \
             --template-body file://infra/template.yaml \
             --capabilities CAPABILITY_NAMED_IAM \
-            --parameters \
-              ParameterKey=ExistingElasticIP,ParameterValue=eipalloc-0ff76f0954d2c82dd
 
           echo "Aguardando criação da stack..."
           aws cloudformation wait stack-create-complete --stack-name devops-nest-docker
