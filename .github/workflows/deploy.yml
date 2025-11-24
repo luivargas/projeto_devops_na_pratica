@@ -47,4 +47,4 @@ jobs:
       - name: ZAP Scan
         uses: zaproxy/action-full-scan@v0.13.0
         with:
-          target: 'https://projeto-devops-na-pratica.onrender.com//'
+          target: 'https://projeto-devops-na-pratica.onrender.com/'
