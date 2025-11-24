@@ -201,9 +201,6 @@ Resources:
           # Clona ou atualiza o repositório
           su - ec2-user -c "git clone --branch ${GitBranch} ${GitRepoUrl} /opt/app || (cd /opt/app && git pull)"
 
-          # (Opcional) se o docker-compose.yml estiver no repositório, apenas sobe:
-          su - ec2-user -c "cd /opt/app && /usr/local/bin/docker-compose up -d --build"
-
           # Se quiser garantir que sobe sempre no boot, você pode criar um serviço systemd
           cat >/etc/systemd/system/docker-compose-app.service <<SERVICE
           [Unit]
@@ -225,6 +222,10 @@ Resources:
           systemctl daemon-reload
           systemctl enable docker-compose-app
           systemctl start docker-compose-app
+
+          docker run -t owasp/zap2docker-stable zap-baseline.py \
+          -t https://foodtime.com \
+          -g gen.conf -r report.html
 
 
   # ======================
