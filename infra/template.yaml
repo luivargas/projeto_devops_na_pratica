@@ -223,10 +223,6 @@ Resources:
           systemctl enable docker-compose-app
           systemctl start docker-compose-app
 
-          docker run -t owasp/zap2docker-stable zap-baseline.py \
-          -t https://foodtime.com \
-          -g gen.conf -r report.html
-
 
   # ======================
   # ECR (repositório Docker)
