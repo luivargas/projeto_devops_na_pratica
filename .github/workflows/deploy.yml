@@ -44,5 +44,7 @@ jobs:
             --evaluation-periods 2 \
             --alarm-actions arn:aws:sns:us-east-2:123456789012:NotifyMe \
             --unit Percent
-          docker run -t owasp/zap2docker-stable zap-baseline.py \
-            -t https://projeto-devops-na-pratica.onrender.com \-g gen.conf -r report.html
+      - name: ZAP Scan
+        uses: zaproxy/action-full-scan@v0.13.0
+        with:
+          target: 'https://projeto-devops-na-pratica.onrender.com//'
