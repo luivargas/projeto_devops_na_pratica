@@ -52,14 +52,11 @@ jobs:
       - name: Build da imagem Docker
         run: |
           # Ajuste o nome da imagem conforme seu projeto
-          docker build -t myapp:latest .
+          docker build -t projeto-devops-na-pratica .
 
       - name: Subir containers com Docker Compose
         run: |
-          # Se o arquivo se chamar docker-compose.yaml na raiz, isso basta
           docker compose up -d --build
-          # ou, se estiver em outro caminho, por exemplo:
-          # docker compose -f infra/docker-compose.yaml up -d --build
         
       - name: ZAP Scan
         uses: zaproxy/action-full-scan@v0.13.0
