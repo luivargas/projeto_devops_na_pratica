@@ -65,7 +65,6 @@ jobs:
             docker compose version || docker-compose version
 
             echo "Subindo containers com Docker Compose..."
-            # se o docker-compose.yml estiver na raiz:
             docker compose up -d --build
         
       - name: ZAP Scan
