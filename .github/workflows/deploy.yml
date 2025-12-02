@@ -55,7 +55,7 @@ jobs:
             set -e
 
             # pasta onde seu projeto foi clonado na EC2
-            cd /opt/myapp
+            cd /app
  
             echo "Atualizando código..." 
             git pull origin main

@@ -195,11 +195,11 @@ Resources:
           chmod +x /usr/local/bin/docker-compose
 
           # Prepara diretório da app
-          mkdir -p /opt/app
-          chown ec2-user:ec2-user /opt/app
+          mkdir -p /app
+          chown ec2-user:ec2-user /app
 
           # Clona ou atualiza o repositório
-          su - ec2-user -c "git clone --branch ${GitBranch} ${GitRepoUrl} /opt/app || (cd /opt/app && git pull)"
+          su - ec2-user -c "git clone --branch ${GitBranch} ${GitRepoUrl} /app || (cd /app && git pull)"
 
           # Se quiser garantir que sobe sempre no boot, você pode criar um serviço systemd
           cat >/etc/systemd/system/docker-compose-app.service <<SERVICE
