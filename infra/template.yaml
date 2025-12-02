@@ -182,6 +182,47 @@ Resources:
           # Atualiza pacotes
           dnf -y update
 
+          # Instala git e docker
+          dnf -y install git docker
+
+          # Habilita e inicia o Docker
+          systemctl enable docker
+          systemctl start docker
+
+          # Instala docker-compose (binário oficial)
+          curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" \
+            -o /usr/local/bin/docker-compose
+          chmod +x /usr/local/bin/docker-compose
+
+          # Prepara diretório da app
+          mkdir -p /opt/app
+          chown ec2-user:ec2-user /opt/app
+
+          # Clona ou atualiza o repositório
+          su - ec2-user -c "git clone --branch ${GitBranch} ${GitRepoUrl} /opt/app || (cd /opt/app && git pull)"
+
+          # Se quiser garantir que sobe sempre no boot, você pode criar um serviço systemd
+          cat >/etc/systemd/system/docker-compose-app.service <<SERVICE
+          [Unit]
+          Description=Minha app via Docker Compose
+          Requires=docker.service
+          After=docker.service
+
+          [Service]
+          Type=oneshot
+          WorkingDirectory=/opt/app
+          ExecStart=/usr/local/bin/docker-compose up -d --build
+          ExecStop=/usr/local/bin/docker-compose down
+          RemainAfterExit=yes
+
+          [Install]
+          WantedBy=multi-user.target
+          SERVICE
+
+          systemctl daemon-reload
+          systemctl enable docker-compose-app
+          systemctl start docker-compose-app
+
   # ======================
   # ECR (repositório Docker)
   # ======================
