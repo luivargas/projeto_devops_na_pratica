@@ -44,16 +44,6 @@ jobs:
             --evaluation-periods 2 \
             --alarm-actions arn:aws:sns:us-east-2:123456789012:NotifyMe \
             --unit Percent
-      - name: Verificar Docker e Docker Compose
-        run: |
-          docker version
-          docker compose version || docker-compose version
-
-      - name: Build da imagem Docker
-        run: |
-          # Ajuste o nome da imagem conforme seu projeto
-          docker build -t projeto-devops-na-pratica .
-        
       - name: ZAP Scan
         uses: zaproxy/action-full-scan@v0.13.0
         with:
