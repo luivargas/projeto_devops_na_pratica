@@ -63,9 +63,6 @@ jobs:
             echo "Verificando Docker..."
             docker version
             docker compose version || docker-compose version
-
-            echo "Subindo containers com Docker Compose..."
-            docker compose up -d --build
         
       - name: ZAP Scan
         uses: zaproxy/action-full-scan@v0.13.0

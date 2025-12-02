@@ -210,7 +210,7 @@ Resources:
 
           [Service]
           Type=oneshot
-          WorkingDirectory=/opt/app
+          WorkingDirectory=/app
           ExecStart=/usr/local/bin/docker-compose up -d --build
           ExecStop=/usr/local/bin/docker-compose down
           RemainAfterExit=yes
