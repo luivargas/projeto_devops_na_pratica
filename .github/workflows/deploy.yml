@@ -56,8 +56,8 @@ jobs:
 
             # pasta onde seu projeto foi clonado na EC2
             cd /opt/myapp
-
-            echo "Atualizando código..."
+ 
+            echo "Atualizando código..." 
             git pull origin main
 
             echo "Verificando Docker..."
